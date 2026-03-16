@@ -1,5 +1,6 @@
 use meshcorrode::{
     commands::device::app_start,
+    proto::parser::parse_packet,
     transport::{
         Transport,
         ble::{BleFilter, BleTransport},
@@ -16,6 +17,7 @@ async fn main() {
     let app_start = app_start("meshcorrode");
     transport.send(&app_start).await.unwrap();
     if let Some(bytes) = rx.recv().await {
-        println!("appstart response: {:02x?}", bytes.as_ref());
+        let resp = parse_packet(bytes.as_ref()).unwrap();
+        println!("event: {:?}", resp);
     }
 }
