@@ -13,7 +13,7 @@ async fn main() {
     env_logger::init();
     let mut transport = BleTransport::new(BleFilter::AnyMeshCore);
     let mut rx = transport.connect().await.unwrap();
-    // Hardcoded app start bytes for now, will be commands in the future
+    // send app start command and print self_info response
     let app_start = app_start("meshcorrode");
     transport.send(&app_start).await.unwrap();
     if let Some(bytes) = rx.recv().await {
