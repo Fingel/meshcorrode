@@ -1,23 +1,36 @@
+use std::time::Duration;
+
 use meshcorrode::{
-    commands::device::app_start,
-    proto::parser::parse_packet,
-    transport::{
-        Transport,
-        ble::{BleFilter, BleTransport},
-    },
+    commands::device::AppStart,
+    connection::Connection,
+    event::Event,
+    transport::ble::{BleFilter, BleTransport},
 };
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run with RUST_LOG=debug to see verbose logs
     env_logger::init();
-    let mut transport = BleTransport::new(BleFilter::AnyMeshCore);
-    let mut rx = transport.connect().await.unwrap();
-    // send app start command and print self_info response
-    let app_start = app_start("meshcorrode");
-    transport.send(&app_start).await.unwrap();
-    if let Some(bytes) = rx.recv().await {
-        let resp = parse_packet(bytes.as_ref()).unwrap();
-        println!("event: {:?}", resp);
+
+    let transport = BleTransport::new(BleFilter::AnyMeshCore);
+    let conn = Connection::connect(transport).await.unwrap();
+
+    let event = conn
+        .execute(
+            AppStart {
+                client_name: "meshcorrode".into(),
+            },
+            Duration::from_secs(5),
+        )
+        .await?;
+
+    if let Event::SelfInfo(info) = event {
+        println!("connected to: {}", info.name);
+        println!(
+            "public key:   {}",
+            info.public_key.map(|b| format!("{b:02x}")).join("")
+        );
     }
+
+    Ok(())
 }
