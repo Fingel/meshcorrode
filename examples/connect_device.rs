@@ -5,6 +5,8 @@ use meshcorrode::transport::{
 
 #[tokio::main]
 async fn main() {
+    // Run with RUST_LOG=debug to see verbose logs
+    env_logger::init();
     let mut transport = BleTransport::new(BleFilter::AnyMeshCore);
     let mut rx = transport.connect().await.unwrap();
     // Hardcoded app start bytes for now, will be commands in the future

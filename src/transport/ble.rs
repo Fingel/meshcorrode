@@ -4,6 +4,7 @@ use btleplug::api::{
 use btleplug::platform::{Adapter, Manager, Peripheral};
 use bytes::Bytes;
 use futures::StreamExt;
+use log::debug;
 use tokio::sync::mpsc;
 use uuid::{Uuid, uuid};
 
@@ -71,6 +72,7 @@ impl Transport for BleTransport {
         let manager = Manager::new().await?;
         let adapters = manager.adapters().await?;
         // We could support multiple adapters here, for now just pick the first one.
+        debug!("found {} adapters", adapters.len());
         let central: Adapter = adapters.into_iter().nth(0).ok_or(BleError::NoAdapter)?;
 
         central
@@ -89,6 +91,7 @@ impl Transport for BleTransport {
                     let props = p.properties().await?.unwrap_or_default();
                     let name = props.local_name.as_deref();
                     let addr = props.address.to_string();
+                    debug!("disc. device: id:{} name: {:?} addr: {}", id, name, addr);
                     if self.matches(name, &addr) {
                         found = Some(p);
                         break;
@@ -126,6 +129,7 @@ impl Transport for BleTransport {
                 if notif.uuid == UART_TX_CHAR_UUID
                     && tx.send(Bytes::from(notif.value)).await.is_err()
                 {
+                    debug!("receiver dropped, ending notification task");
                     break;
                 }
             }
@@ -139,6 +143,7 @@ impl Transport for BleTransport {
     async fn send(&self, data: &[u8]) -> Result<(), BleError> {
         let peripheral = self.peripheral.as_ref().ok_or(BleError::NotConnected)?;
         let rx_char = self.rx_char.as_ref().ok_or(BleError::NotConnected)?;
+        debug!("-> {} bytes", data.len());
         peripheral
             .write(rx_char, data, WriteType::WithResponse)
             .await?;
