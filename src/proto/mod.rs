@@ -9,4 +9,5 @@ pub enum PacketType {
     Ok = 0,
     Error = 1,
     SelfInfo = 5,
+    RxLogData = 0x88,
 }

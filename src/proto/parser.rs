@@ -1,7 +1,7 @@
 use bytes::Buf;
 
 use super::PacketType;
-use crate::event::{Event, SelfInfoPayload};
+use crate::event::{Event, RxLogDataPayload, SelfInfoPayload};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
@@ -21,9 +21,21 @@ pub fn parse_packet(data: &[u8]) -> Result<Event, ParseError> {
 
     match PacketType::try_from(packet_type) {
         Ok(PacketType::SelfInfo) => parse_self_info(payload).map(Event::SelfInfo),
+        Ok(PacketType::RxLogData) => Ok(Event::RxLogData(parse_rx_log_data(payload))),
         Ok(PacketType::Ok) | Ok(PacketType::Error) => todo!(),
         Err(_) => Err(ParseError::UnknownPacketType(packet_type)),
     }
+}
+
+// RX_LOG_DATA
+// https://github.com/meshcore-dev/meshcore_py/blob/5bfe63912c6389faa072c19d2d90a2c12d23205f/src/meshcore/reader.py#L577
+fn parse_rx_log_data(data: &[u8]) -> RxLogDataPayload {
+    let mut buf = data;
+    let snr = buf.get_i8() as f32 / 4.0;
+    let rssi = buf.get_i8();
+    let payload = buf.to_vec();
+    // TODO parse full packet: https://github.com/meshcore-dev/meshcore_py/blob/5bfe63912c6389faa072c19d2d90a2c12d23205f/src/meshcore/meshcore_parser.py#L35
+    RxLogDataPayload { snr, rssi, payload }
 }
 
 // SELF_INFO

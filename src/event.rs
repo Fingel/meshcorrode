@@ -20,7 +20,15 @@ pub struct SelfInfoPayload {
 }
 
 #[derive(Debug, Clone)]
+pub struct RxLogDataPayload {
+    pub snr: f32,
+    pub rssi: i8,
+    pub payload: Vec<u8>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Event {
     SelfInfo(SelfInfoPayload),
+    RxLogData(RxLogDataPayload),
     Error(String),
 }
