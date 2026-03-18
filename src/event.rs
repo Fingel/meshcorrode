@@ -1,6 +1,15 @@
 use num_enum::TryFromPrimitive;
 
 #[derive(Debug, Clone)]
+pub enum Event {
+    SelfInfo(SelfInfoPayload),
+    Contacts(ContactsPayload),
+    RxLogData(RxLogDataPayload),
+    MsgSent(MsgSentPayload),
+    Error(String),
+}
+
+#[derive(Debug, Clone)]
 pub struct SelfInfoPayload {
     pub adv_type: u8,
     pub tx_power: u8,
@@ -74,9 +83,8 @@ pub struct RxLogDataPayload {
 }
 
 #[derive(Debug, Clone)]
-pub enum Event {
-    SelfInfo(SelfInfoPayload),
-    Contacts(ContactsPayload),
-    RxLogData(RxLogDataPayload),
-    Error(String),
+pub struct MsgSentPayload {
+    pub r#type: u8,
+    pub expected_ack: [u8; 4],
+    pub suggested_timeout: u32,
 }

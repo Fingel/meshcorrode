@@ -12,5 +12,6 @@ pub enum PacketType {
     Contact = 3,
     ContactEnd = 4,
     SelfInfo = 5,
+    Sent = 6,
     RxLogData = 0x88,
 }

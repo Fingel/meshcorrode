@@ -2,7 +2,8 @@ use bytes::Buf;
 
 use super::PacketType;
 use crate::event::{
-    ContactPayload, ContactType, ContactsPayload, Event, RxLogDataPayload, SelfInfoPayload,
+    ContactPayload, ContactType, ContactsPayload, Event, MsgSentPayload, RxLogDataPayload,
+    SelfInfoPayload,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -48,6 +49,7 @@ impl Parser {
                 let contacts = std::mem::take(&mut self.contact_buf);
                 Ok(Some(Event::Contacts(ContactsPayload { contacts, lastmod })))
             }
+            Ok(PacketType::Sent) => parse_msg_sent(payload).map(|p| Some(Event::MsgSent(p))),
             Ok(PacketType::Ok) | Ok(PacketType::Error) => todo!(),
             Err(_) => Err(ParseError::UnknownPacketType(packet_type)),
         }
@@ -174,5 +176,22 @@ fn parse_self_info(data: &[u8]) -> Result<SelfInfoPayload, ParseError> {
         radio_sf,
         radio_cr,
         name,
+    })
+}
+
+// MSG_SENT
+// https://github.com/meshcore-dev/meshcore_py/blob/5bfe63912c6389faa072c19d2d90a2c12d23205f/src/meshcore/reader.py#L183
+fn parse_msg_sent(data: &[u8]) -> Result<MsgSentPayload, ParseError> {
+    let mut buf = data;
+
+    let r#type = buf.get_u8(); // TODO this might be the Messaging::MessageType enum
+    let mut expected_ack = [0u8; 4];
+    buf.copy_to_slice(&mut expected_ack);
+    let suggested_timeout = buf.get_u32_le();
+
+    Ok(MsgSentPayload {
+        r#type,
+        expected_ack,
+        suggested_timeout,
     })
 }
