@@ -1,6 +1,6 @@
 use bytes::Bytes;
 
-use crate::event::Event;
+use crate::event::{ContactsPayload, Event};
 
 use super::Command;
 
@@ -24,7 +24,12 @@ impl Command for GetContacts {
         }
     }
 
-    fn is_response(&self, event: &Event) -> bool {
-        matches!(event, Event::Contacts(_))
+    type Response = ContactsPayload;
+
+    fn extract_response(&self, event: Event) -> Option<ContactsPayload> {
+        match event {
+            Event::Contacts(p) => Some(p),
+            _ => None,
+        }
     }
 }

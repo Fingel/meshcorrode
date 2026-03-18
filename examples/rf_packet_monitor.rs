@@ -1,7 +1,4 @@
-use std::time::Duration;
-
 use meshcorrode::{
-    commands::device::AppStart,
     connection::Connection,
     event::Event,
     transport::ble::{BleFilter, BleTransport},
@@ -14,14 +11,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let transport = BleTransport::new(BleFilter::AnyMeshCore);
     let conn = Connection::connect(transport).await?;
-
-    conn.execute(
-        AppStart {
-            client_name: "meshcorrode".into(),
-        },
-        Duration::from_secs(5),
-    )
-    .await?;
 
     println!("Listening for mesh traffic...");
     let mut rx = conn.subscribe(|e| matches!(e, Event::RxLogData(_)));

@@ -45,7 +45,10 @@ impl<T: Transport> Connection<T> {
         &self,
         cmd: C,
         timeout: Duration,
-    ) -> Result<Event, Error> {
+    ) -> Result<C::Response, Error>
+    where
+        C::Response: Send,
+    {
         let mut rx = self.event_bus.subscribe();
 
         self.transport
@@ -56,9 +59,12 @@ impl<T: Transport> Connection<T> {
         tokio::time::timeout(timeout, async move {
             loop {
                 match rx.recv().await {
-                    Ok(event) if cmd.is_response(&event) => return Ok(event),
                     Ok(Event::Error(e)) => return Err(Error::Device(e)),
-                    Ok(_) => continue,
+                    Ok(event) => {
+                        if let Some(response) = cmd.extract_response(event) {
+                            return Ok(response);
+                        }
+                    }
                     Err(RecvError::Lagged(n)) => warn!("event bus lagged by {n} events"),
                     Err(RecvError::Closed) => return Err(Error::Disconnected),
                 }

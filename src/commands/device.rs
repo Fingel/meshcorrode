@@ -1,7 +1,7 @@
 use bytes::{BufMut, Bytes, BytesMut};
 
 use super::Command;
-use crate::event::Event;
+use crate::event::{Event, SelfInfoPayload};
 
 const CMD_APP_START: u8 = 1;
 
@@ -22,7 +22,12 @@ impl Command for AppStart {
         buf.freeze()
     }
 
-    fn is_response(&self, event: &Event) -> bool {
-        matches!(event, Event::SelfInfo(_))
+    type Response = SelfInfoPayload;
+
+    fn extract_response(&self, event: Event) -> Option<SelfInfoPayload> {
+        match event {
+            Event::SelfInfo(p) => Some(p),
+            _ => None,
+        }
     }
 }

@@ -3,7 +3,6 @@ use std::time::Duration;
 use meshcorrode::{
     commands::device::AppStart,
     connection::Connection,
-    event::Event,
     transport::ble::{BleFilter, BleTransport},
 };
 
@@ -15,7 +14,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let transport = BleTransport::new(BleFilter::AnyMeshCore);
     let conn = Connection::connect(transport).await.unwrap();
 
-    let event = conn
+    let info = conn
         .execute(
             AppStart {
                 client_name: "meshcorrode".into(),
@@ -24,13 +23,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .await?;
 
-    if let Event::SelfInfo(info) = event {
-        println!("connected to: {}", info.name);
-        println!(
-            "public key:   {}",
-            info.public_key.map(|b| format!("{b:02x}")).join("")
-        );
-    }
+    println!("connected to: {}", info.name);
+    println!(
+        "public key:   {}",
+        info.public_key.map(|b| format!("{b:02x}")).join("")
+    );
 
     Ok(())
 }
