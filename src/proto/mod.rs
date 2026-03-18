@@ -8,6 +8,9 @@ pub enum PacketType {
     // TODO: Fill these in from https://github.com/meshcore-dev/MeshCore/blob/main/examples/companion_radio/MyMesh.cpp#L67
     Ok = 0,
     Error = 1,
+    ContactStart = 2,
+    Contact = 3,
+    ContactEnd = 4,
     SelfInfo = 5,
     RxLogData = 0x88,
 }

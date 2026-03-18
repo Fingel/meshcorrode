@@ -9,7 +9,7 @@ use crate::commands::Command;
 use crate::error::Error;
 use crate::event::Event;
 use crate::event_bus::EventBus;
-use crate::proto::parser::parse_packet;
+use crate::proto::parser::Parser;
 use crate::transport::Transport;
 
 pub struct Connection<T: Transport> {
@@ -24,9 +24,11 @@ impl<T: Transport> Connection<T> {
         let bus = event_bus.clone();
 
         tokio::spawn(async move {
+            let mut parser = Parser::new();
             while let Some(bytes) = rx.recv().await {
-                match parse_packet(&bytes) {
-                    Ok(event) => bus.publish(event),
+                match parser.parse_packet(&bytes) {
+                    Ok(Some(event)) => bus.publish(event),
+                    Ok(None) => {}
                     Err(e) => warn!("failed to parse packet: {e}"),
                 }
             }

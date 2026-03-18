@@ -1,7 +1,9 @@
 use bytes::Buf;
 
 use super::PacketType;
-use crate::event::{Event, RxLogDataPayload, SelfInfoPayload};
+use crate::event::{
+    ContactPayload, ContactType, ContactsPayload, Event, RxLogDataPayload, SelfInfoPayload,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
@@ -11,19 +13,103 @@ pub enum ParseError {
     UnknownPacketType(u8),
 }
 
-pub fn parse_packet(data: &[u8]) -> Result<Event, ParseError> {
-    if data.is_empty() {
-        return Err(ParseError::TooShort { needed: 1, got: 0 });
+#[derive(Default)]
+pub struct Parser {
+    contact_buf: Vec<ContactPayload>,
+}
+
+impl Parser {
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    let packet_type = data[0];
-    let payload = &data[1..];
+    pub fn parse_packet(&mut self, data: &[u8]) -> Result<Option<Event>, ParseError> {
+        if data.is_empty() {
+            return Err(ParseError::TooShort { needed: 1, got: 0 });
+        }
 
-    match PacketType::try_from(packet_type) {
-        Ok(PacketType::SelfInfo) => parse_self_info(payload).map(Event::SelfInfo),
-        Ok(PacketType::RxLogData) => Ok(Event::RxLogData(parse_rx_log_data(payload))),
-        Ok(PacketType::Ok) | Ok(PacketType::Error) => todo!(),
-        Err(_) => Err(ParseError::UnknownPacketType(packet_type)),
+        let packet_type = data[0];
+        let payload = &data[1..];
+
+        match PacketType::try_from(packet_type) {
+            Ok(PacketType::SelfInfo) => parse_self_info(payload).map(|p| Some(Event::SelfInfo(p))),
+            Ok(PacketType::RxLogData) => Ok(Some(Event::RxLogData(parse_rx_log_data(payload)))),
+            Ok(PacketType::ContactStart) => {
+                self.contact_buf.clear();
+                Ok(None) // TODO maybe remove None here, to enable streaming of contacts back to the client
+            }
+            Ok(PacketType::Contact) => {
+                self.contact_buf.push(parse_contact(payload));
+                Ok(None)
+            }
+            Ok(PacketType::ContactEnd) => {
+                let mut buf = payload;
+                let lastmod = buf.get_u32_le();
+                let contacts = std::mem::take(&mut self.contact_buf);
+                Ok(Some(Event::Contacts(ContactsPayload { contacts, lastmod })))
+            }
+            Ok(PacketType::Ok) | Ok(PacketType::Error) => todo!(),
+            Err(_) => Err(ParseError::UnknownPacketType(packet_type)),
+        }
+    }
+}
+
+// CONTACT / PUSH_CODE_NEW_ADVERT
+// This logic is used for parsing contacts both when explicitly requested and when we receive new adverts
+// https://github.com/meshcore-dev/meshcore_py/blob/5bfe63912c6389faa072c19d2d90a2c12d23205f/src/meshcore/reader.py#L98
+fn parse_contact(data: &[u8]) -> ContactPayload {
+    let mut buf = data;
+
+    let mut public_key = [0u8; 32];
+    buf.copy_to_slice(&mut public_key);
+
+    let contact_type = ContactType::try_from(buf.get_u8()).unwrap_or(ContactType::None);
+    let flags = buf.get_u8();
+
+    let plen = buf.get_u8();
+    let (out_path_len, out_path_hash_mode) = if plen == 255 {
+        (-1i8, -1i8)
+    } else {
+        ((plen & 0x3F) as i8, (plen >> 6) as i8)
+    };
+
+    let mut out_path_raw = [0u8; 64];
+    buf.copy_to_slice(&mut out_path_raw);
+    let out_path = out_path_raw
+        .iter()
+        .copied()
+        .take_while(|&b| b != 0)
+        .collect();
+
+    let mut adv_name_raw = [0u8; 32];
+    buf.copy_to_slice(&mut adv_name_raw);
+    let adv_name = String::from_utf8_lossy(
+        adv_name_raw
+            .iter()
+            .take_while(|&&b| b != 0)
+            .copied()
+            .collect::<Vec<_>>()
+            .as_slice(),
+    )
+    .into_owned();
+
+    let last_advert = buf.get_u32_le();
+    let adv_lat = buf.get_i32_le() as f64 / 1_000_000.0;
+    let adv_lon = buf.get_i32_le() as f64 / 1_000_000.0;
+    let lastmod = buf.get_u32_le();
+
+    ContactPayload {
+        public_key,
+        contact_type,
+        flags,
+        out_path_len,
+        out_path_hash_mode,
+        out_path,
+        adv_name,
+        last_advert,
+        adv_lat,
+        adv_lon,
+        lastmod,
     }
 }
 
