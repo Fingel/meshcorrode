@@ -5,6 +5,9 @@ use bytes::Bytes;
 
 use crate::event::Event;
 
+const CMD_APP_START: u8 = 1;
+const CMD_GET_CONTACTS: u8 = 0x04;
+
 pub trait Command {
     type Response;
     fn encode(&self) -> Bytes;

@@ -2,9 +2,7 @@ use bytes::Bytes;
 
 use crate::event::{ContactsPayload, Event};
 
-use super::Command;
-
-const CMD_GET_CONTACTS: u8 = 0x04;
+use super::{CMD_GET_CONTACTS, Command};
 
 #[derive(Default)]
 pub struct GetContacts {

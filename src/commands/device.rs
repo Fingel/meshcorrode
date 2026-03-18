@@ -1,9 +1,7 @@
 use bytes::{BufMut, Bytes, BytesMut};
 
-use super::Command;
+use super::{CMD_APP_START, Command};
 use crate::event::{Event, SelfInfoPayload};
-
-const CMD_APP_START: u8 = 1;
 
 /// APP_START command.
 ///
