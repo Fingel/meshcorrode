@@ -56,6 +56,8 @@ impl Parser {
     }
 }
 
+// --- CONTACT ---
+
 // CONTACT / PUSH_CODE_NEW_ADVERT
 // This logic is used for parsing contacts both when explicitly requested and when we receive new adverts
 // https://github.com/meshcore-dev/meshcore_py/blob/5bfe63912c6389faa072c19d2d90a2c12d23205f/src/meshcore/reader.py#L98
@@ -114,6 +116,8 @@ fn parse_contact(data: &[u8]) -> ContactPayload {
         lastmod,
     }
 }
+
+// --- DEVICE ---
 
 // RX_LOG_DATA
 // https://github.com/meshcore-dev/meshcore_py/blob/5bfe63912c6389faa072c19d2d90a2c12d23205f/src/meshcore/reader.py#L577
@@ -178,6 +182,8 @@ fn parse_self_info(data: &[u8]) -> Result<SelfInfoPayload, ParseError> {
         name,
     })
 }
+
+// --- MESSAGING ---
 
 // MSG_SENT
 // https://github.com/meshcore-dev/meshcore_py/blob/5bfe63912c6389faa072c19d2d90a2c12d23205f/src/meshcore/reader.py#L183
